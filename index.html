@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IndiaBus — Advanced Bus Booking (Frontend)</title>
+  <!-- Tailwind Play CDN for quick styling (works for prototyping) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom colors + small tweaks to match the screenshots */
+    :root{
+      --bg1:#071232; /* deep navy */
+      --bg2:#0b2b4a; /* mid */
+      --card:#113652; /* card */
+      --accent:#ff9b00; /* orange */
+      --cta:#22c1c3; /* teal-ish for search */
+      --highlight:#facc15; /* yellow highlight for nav */
+    }
+    body{background:linear-gradient(180deg,var(--bg1),var(--bg2));}
+    .glass{background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); backdrop-filter: blur(6px);}    
+    .brand-orange{color:var(--accent);} 
+    .btn-cta{background:linear-gradient(90deg,#3bd6d4,#2aa8ff);} 
+    /* simple calendar highlight */
+    .day-selected{background:var(--accent); color:#071232; border-radius:8px;}
+    /* dropdown animation for calendar */
+    .dropdown-cal{overflow:hidden; max-height:0; transition: max-height 300ms ease, opacity 250ms ease; opacity:0;}
+    .dropdown-cal.open{max-height:520px; opacity:1;}
+    /* nav highlight */
+    .nav-item{padding:.4rem .6rem; border-radius:.5rem;}
+    .nav-item.active{background:var(--highlight); color:#071232; font-weight:700;}
+  </style>
+</head>
+<body class="min-h-screen text-white font-sans">
+  <div class="max-w-5xl mx-auto p-6">
+    <!-- Header / Brand -->
+    <header class="text-center py-8">
+      <h1 class="text-5xl font-extrabold"><span class="brand-orange">INDIA</span><span class="text-sky-400">BUS</span></h1>
+      <p class="mt-2 text-slate-200">One-stop solution for your intercity travel needs.</p>
+    </header>
+
+    <!-- Auth / Main container -->
+    <main id="app">
+
+      <!-- Login / Register overlay -->
+      <section id="auth" class="max-w-2xl mx-auto glass rounded-2xl p-6 shadow-lg">
+        <div id="auth-forms">
+          <!-- Tabs -->
+          <div class="flex justify-center gap-4 mb-6">
+            <button id="tab-login" class="px-4 py-2 rounded-full bg-slate-800">Login</button>
+            <button id="tab-register" class="px-4 py-2 rounded-full bg-slate-800/70">Register</button>
+          </div>
+
+          <!-- Login Form -->
+          <form id="login-form" class="space-y-4">
+            <input id="login-email" type="email" placeholder="Email or phone" class="w-full p-3 rounded-md bg-slate-900/30 placeholder-slate-300" required />
+            <input id="login-password" type="password" placeholder="Password" class="w-full p-3 rounded-md bg-slate-900/30" required />
+            <div class="flex justify-between items-center">
+              <label class="text-sm text-slate-300"><input id="remember" type="checkbox" class="mr-2"> Remember me</label>
+              <button type="submit" class="px-5 py-2 rounded-full" style="background:var(--accent); color:#071232; font-weight:700;">Sign in</button>
+            </div>
+          </form>
+
+          <!-- Register Form -->
+          <form id="register-form" class="hidden space-y-4">
+            <input id="reg-name" type="text" placeholder="Full name" class="w-full p-3 rounded-md bg-slate-900/30" required />
+            <input id="reg-email" type="email" placeholder="Email or phone" class="w-full p-3 rounded-md bg-slate-900/30" required />
+            <input id="reg-password" type="password" placeholder="Password" class="w-full p-3 rounded-md bg-slate-900/30" required />
+            <div class="flex justify-end">
+              <button id="btn-register" type="submit" class="px-5 py-2 rounded-full" style="background:var(--accent); color:#071232; font-weight:700;">Create account</button>
+            </div>
+          </form>
+        </div>
+        <p class="mt-4 text-xs text-slate-400">This is a front-end demo. Data is stored locally in your browser (localStorage) unless connected to a server.</p>
+      </section>
+
+      <!-- Booking Interface (hidden until logged in) -->
+      <section id="booking" class="hidden mt-8">
+        <div class="flex items-center justify-between mb-4">
+          <nav id="main-nav" class="flex gap-6 font-semibold">
+            <a class="nav-item nav-link">Book Tickets</a>
+            <a id="cancel-book" class="nav-item nav-link">Cancel Booking</a>
+            <a id="logout" class="nav-item nav-link">Logout</a>
+          </nav>
+          <div id="logged-as" class="text-sm text-emerald-300"></div>
+        </div>
+
+        <!-- Search Card -->
+        <div class="glass rounded-2xl p-6 shadow-xl">
+          <h2 class="text-2xl font-bold mb-4">1. Select Route & Type</h2>
+          <div class="grid grid-cols-12 gap-4 items-end">
+            <div class="col-span-12 md:col-span-4">
+              <label class="block mb-2 text-slate-300">From</label>
+              <select id="from" class="w-full p-3 rounded-md bg-slate-900/30">
+                <option>Mumbai</option>
+                <option>Delhi</option>
+                <option>Bengaluru</option>
+                <option>Chennai</option>
+                <option>Kolkata</option>
+              </select>
+            </div>
+            <div class="col-span-12 md:col-span-3">
+              <label class="block mb-2 text-slate-300">To</label>
+              <select id="to" class="w-full p-3 rounded-md bg-slate-900/30">
+                <option>Delhi</option>
+                <option>Mumbai</option>
+                <option>Hyderabad</option>
+                <option>Pune</option>
+                <option>Jaipur</option>
+              </select>
+            </div>
+            <div class="col-span-12 md:col-span-3">
+              <label class="block mb-2 text-slate-300">Bus Type</label>
+              <select id="type" class="w-full p-3 rounded-md bg-slate-900/30">
+                <option>AC Bus</option>
+                <option>Non-AC</option>
+                <option>Sleeper</option>
+              </select>
+            </div>
+
+            <div class="col-span-12 md:col-span-2">
+              <label class="block mb-2 text-slate-300">Date</label>
+              <input id="date-input" readonly class="w-full p-3 rounded-md bg-slate-900/30 cursor-pointer" />
+              <!-- Dropdown calendar container -->
+              <div id="cal-dropdown" class="dropdown-cal mt-2 rounded-lg p-3 bg-slate-900/20"></div>
+            </div>
+
+            <!-- Search button moved below the calendar -->
+            <div class="col-span-12 mt-4">
+              <button id="search-btn" class="w-full md:w-1/3 p-3 rounded-lg btn-cta font-semibold">Search Buses</button>
+            </div>
+
+            <!-- small calendar preview (kept for context) -->
+            <div class="col-span-12">
+              <div id="calendar-small" class="mt-6"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="mt-6 space-y-4"></div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Seat modal & calendar modal -->
+  <div id="modal-root"></div>
+
+  <script>
+    /************ Simple front-end logic using localStorage or server endpoints ************/
+
+    // helpers
+    const $ = (id) => document.getElementById(id);
+
+    // initialize users storage if absent (only for pure-local demo mode)
+    if(!localStorage.getItem('users')){
+      const demo = [{id:1,name:'Demo User',email:'demo@local',password:'demo'}];
+      localStorage.setItem('users', JSON.stringify(demo));
+    }
+
+    // auth UI
+    const tabLogin = $('tab-login');
+    const tabRegister = $('tab-register');
+    const loginForm = $('login-form');
+    const registerForm = $('register-form');
+
+    tabLogin.addEventListener('click', ()=>{ loginForm.classList.remove('hidden'); registerForm.classList.add('hidden'); tabLogin.classList.remove('bg-slate-800/70'); tabLogin.classList.add('bg-slate-800'); tabRegister.classList.remove('bg-slate-800'); tabRegister.classList.add('bg-slate-800/70'); });
+    tabRegister.addEventListener('click', ()=>{ registerForm.classList.remove('hidden'); loginForm.classList.add('hidden'); tabRegister.classList.remove('bg-slate-800/70'); tabRegister.classList.add('bg-slate-800'); tabLogin.classList.remove('bg-slate-800'); tabLogin.classList.add('bg-slate-800/70'); });
+
+    // register (server-friendly)
+    registerForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const name = $('reg-name').value.trim();
+      const email = $('reg-email').value.trim();
+      const pwd = $('reg-password').value;
+      try {
+        // attempt server registration; if server not available, fallback to localStorage
+        const res = await fetch('/bus_reservation/register.php', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ name, email, password: pwd })
+        });
+        const j = await res.json();
+        if(!j.ok) return alert(j.msg || 'Error creating account');
+        alert('Account created — you can now log in');
+        tabLogin.click();
+      } catch(err){
+        // fallback local behavior
+        console.warn('Server register failed, falling back to localStorage', err);
+        const users = JSON.parse(localStorage.getItem('users')||'[]');
+        if(users.find(u=>u.email===email)) return alert('Account exists with that email');
+        users.push({id:Date.now(),name,email,password:pwd});
+        localStorage.setItem('users', JSON.stringify(users));
+        alert('Account created locally — you can now log in');
+        tabLogin.click();
+      }
+    });
+
+    // login (server-friendly)
+    loginForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const email = $('login-email').value.trim();
+      const pwd = $('login-password').value;
+      try {
+        const res = await fetch('/bus_reservation/login.php', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ email, password: pwd })
+        });
+        const j = await res.json();
+        if(!j.ok) return alert(j.msg || 'Invalid credentials');
+        // successful login: server set session
+        showBooking();
+      } catch(err){
+        // fallback to local check
+        console.warn('Server login failed, trying localStorage', err);
+        const users = JSON.parse(localStorage.getItem('users')||'[]');
+        const u = users.find(x=>x.email===email && x.password===pwd);
+        if(!u) return alert('Invalid credentials');
+        localStorage.setItem('current_user', JSON.stringify(u));
+        showBooking();
+      }
+    });
+
+    // show booking screen
+    function showBooking(){
+      const auth = $('auth');
+      const booking = $('booking');
+      auth.classList.add('hidden');
+      booking.classList.remove('hidden');
+      const cur = JSON.parse(localStorage.getItem('current_user')||'null');
+      $('logged-as').innerText = cur ? ('Logged in as: '+cur.email) : '';
+    }
+
+    // logout
+    $('logout').addEventListener('click', ()=>{ localStorage.removeItem('current_user'); location.reload(); });
+
+    // init if already logged in
+    if(localStorage.getItem('current_user')) showBooking();
+
+    // nav highlight behavior
+    document.querySelectorAll('.nav-link').forEach(a=>{
+      a.addEventListener('click', ()=>{
+        document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+        a.classList.add('active');
+      });
+    });
+
+    // small calendar + dropdown calendar
+    const dateInput = $('date-input');
+    const calRoot = $('calendar-small');
+    const calDropdown = $('cal-dropdown');
+    let selectedDate = null;
+    let lastSearchResults = []; // will contain generated services for cancellation & booking
+
+    function renderSmallCalendar(year, month){
+      // month is 0-based
+      calRoot.innerHTML = '';
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month+1, 0);
+      const grid = document.createElement('div');
+      grid.className = 'grid grid-cols-7 gap-2 bg-slate-900/10 p-4 rounded-lg';
+      const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      days.forEach(d=>{ const h = document.createElement('div'); h.className='text-xs text-slate-300 text-center'; h.innerText=d; grid.appendChild(h); });
+      for(let i=0;i<start.getDay();i++){ const e=document.createElement('div'); e.innerHTML='&nbsp;'; grid.appendChild(e); }
+      for(let d=1; d<=end.getDate(); d++){
+        const cell = document.createElement('button');
+        const dt = new Date(year, month, d);
+        cell.className = 'p-2 rounded-md hover:bg-slate-800/40';
+        cell.innerText = d;
+        cell.addEventListener('click', ()=>{ selectedDate = dt; dateInput.value = dt.toDateString(); highlightSelected(); closeCalDropdown(); });
+        grid.appendChild(cell);
+      }
+      calRoot.appendChild(grid);
+      highlightSelected();
+    }
+    function highlightSelected(){
+      [...calRoot.querySelectorAll('button')].forEach(btn=>{
+        if(!selectedDate) return btn.classList.remove('day-selected');
+        if(parseInt(btn.innerText)===selectedDate.getDate()) btn.classList.add('day-selected'); else btn.classList.remove('day-selected');
+      });
+    }
+    const now = new Date(); renderSmallCalendar(now.getFullYear(), now.getMonth());
+
+    // dropdown calendar rendering (bigger)
+    let displayYear = now.getFullYear(); let displayMonth = now.getMonth();
+    function renderDropdownCal(){
+      calDropdown.innerHTML = '';
+      const title = document.createElement('div'); title.className='flex justify-between items-center mb-3';
+      title.innerHTML = `<button id='prev' class='px-3 py-1 rounded bg-slate-800'>&lt;</button><div class='text-lg font-bold'>${new Date(displayYear,displayMonth).toLocaleString('default',{month:'long', year:'numeric'})}</div><button id='next' class='px-3 py-1 rounded bg-slate-800'>&gt;</button>`;
+      calDropdown.appendChild(title);
+      const grid = document.createElement('div'); grid.className='grid grid-cols-7 gap-2 text-center';
+      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>{ const h=document.createElement('div'); h.className='text-sm text-slate-300'; h.innerText=d; grid.appendChild(h); });
+      const start = new Date(displayYear, displayMonth, 1); const end = new Date(displayYear, displayMonth+1, 0);
+      for(let i=0;i<start.getDay();i++){ grid.appendChild(document.createElement('div')); }
+      for(let d=1; d<=end.getDate(); d++){
+        const b = document.createElement('button'); b.className='p-3 rounded-md hover:bg-slate-800/40'; b.innerText=d;
+        const dt = new Date(displayYear, displayMonth, d);
+        if(selectedDate && dt.toDateString() === selectedDate.toDateString()) b.classList.add('day-selected');
+        b.addEventListener('click', ()=>{ selectedDate = dt; dateInput.value = dt.toDateString(); renderSmallCalendar(displayYear, displayMonth); closeCalDropdown(); });
+        grid.appendChild(b);
+      }
+      calDropdown.appendChild(grid);
+      calDropdown.querySelector('#prev').addEventListener('click', ()=>{ displayMonth--; if(displayMonth<0){displayMonth=11; displayYear--;} renderDropdownCal(); });
+      calDropdown.querySelector('#next').addEventListener('click', ()=>{ displayMonth++; if(displayMonth>11){displayMonth=0; displayYear++;} renderDropdownCal(); });
+    }
+
+    function openCalDropdown(){ renderDropdownCal(); calDropdown.classList.add('open'); }
+    function closeCalDropdown(){ calDropdown.classList.remove('open'); }
+
+    dateInput.addEventListener('click', (e)=>{ e.stopPropagation(); if(calDropdown.classList.contains('open')) closeCalDropdown(); else openCalDropdown(); });
+    // close when clicking outside
+    document.addEventListener('click',(e)=>{ if(!calDropdown.contains(e.target) && e.target !== dateInput) closeCalDropdown(); });
+
+    // utility: random generator for buses
+    const BUS_NAME_PARTS = ['Express','Travels','Lines','Connect','Lux','Tours','Wheels','Voyage','Swift','Royal'];
+    const OPERATORS = ['King','Daystar','Express','Silver','National','Blue','Prima','Metro','Star','Sahara'];
+    function randomFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+    function pad(n){ return n.toString().padStart(2,'0'); }
+
+    function formatTime(hour, minute){ return `${pad(hour)}:${pad(minute)}`; }
+
+    function makeRandomServices(from, to, type){
+      const count = 4 + Math.floor(Math.random()*4); // 4-7
+      const services = [];
+      for(let i=0;i<count;i++){
+        const isAc = Math.random() > 0.4; // 60% AC
+        const depHour = Math.floor(Math.random()*24);
+        const depMin = Math.floor(Math.random()/1*60)%60;
+        const durHours = 6 + Math.floor(Math.random()*12); // 6-17 hours
+        let arrHour = (depHour + durHours) % 24;
+        const arrMin = depMin;
+        const name = `${randomFrom(OPERATORS)} ${randomFrom(BUS_NAME_PARTS)}`;
+        const priceBase = isAc ? (1200 + Math.floor(Math.random()*1000)) : (700 + Math.floor(Math.random()*700));
+        const busNumber = `BUS${Math.floor(1000 + Math.random()*9000)}`;
+        const id = Date.now() + i + Math.floor(Math.random()*1000);
+        services.push({id, name, dep:formatTime(depHour, depMin), arr:formatTime(arrHour, arrMin), price:priceBase, rating:(3.5 + Math.random()*1.5).toFixed(1), seatsLeft: 10 + Math.floor(Math.random()*30), type: isAc ? 'AC Bus' : 'Non-AC', busNumber});
+      }
+      return services;
+    }
+
+    // Search button handler (now generates random services and shows them)
+    $('search-btn').addEventListener('click', ()=>{
+      const from = $('from').value; const to = $('to').value; const type = $('type').value;
+      if(!selectedDate) return alert('Please select a date');
+      // generate random list
+      const matches = makeRandomServices(from,to,type);
+      lastSearchResults = matches; // store for downstream
+      renderResults(matches);
+      // scroll to results
+      setTimeout(()=>{ document.getElementById('results').scrollIntoView({behavior:'smooth'}); },100);
+    });
+
+    function renderResults(list){
+      const root = $('results'); root.innerHTML='';
+      const header = document.createElement('h3'); header.className='text-xl font-bold'; header.innerText = 'Available Services: '+list.length; root.appendChild(header);
+      list.forEach(s=>{
+        const card = document.createElement('div');
+        card.className = 'flex justify-between items-center p-6 rounded-xl glass';
+        card.innerHTML = `
+          <div>
+            <div class="text-lg font-semibold">${s.name} <span class="ml-2 text-sm text-sky-300">${s.type.includes('AC')?"<span class='bg-sky-700/40 px-2 py-1 rounded-full text-xs'>AC</span>":"<span class='bg-slate-700/30 px-2 py-1 rounded-full text-xs'>Non-AC</span>"}</span></div>
+            <div class="text-amber-300 font-bold mt-2">${s.dep} → ${s.arr}</div>
+            <div class="text-slate-300 mt-2">Rating: ${s.rating} / 5.0</div>
+            <div class="text-slate-400 mt-1 text-sm">Bus No: ${s.busNumber} • Service ID: ${s.id}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-3xl font-extrabold text-amber-400">₹${s.price}</div>
+            <div class="text-xs text-slate-300">${s.seatsLeft} seats left</div>
+            <button data-id="${s.id}" data-busnum="${s.busNumber}" class="mt-3 px-4 py-2 rounded-md btn-view-seats" style="background:var(--accent); color:#071232; font-weight:700;">View Seats</button>
+          </div>
+        `;
+        root.appendChild(card);
+      });
+      // attach view seats handlers
+      root.querySelectorAll('.btn-view-seats').forEach(btn=> btn.addEventListener('click', (e)=>{ const sid = btn.dataset.id; const svc = lastSearchResults.find(x=>String(x.id)===String(sid)); openSeatsModal(svc); }));
+    }
+
+    // Seats modal (very simple seat grid + booking flow) - unchanged largely but now service contains busNumber and id
+    function openSeatsModal(service){
+      const modal = document.createElement('div');
+      modal.className='fixed inset-0 flex items-center justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-slate-900/90 p-6 rounded-2xl w-11/12 max-w-3xl">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold">${service.name} — Seats</h3>
+            <button id="close-modal" class="px-3 py-1 rounded bg-slate-800">Close</button>
+          </div>
+          <div class="grid grid-cols-8 gap-2 mb-4">
+            ${Array.from({length:40}).map((_,i)=> `<button data-seat="${i+1}" class="p-2 rounded-md bg-slate-800/40">${i+1}</button>`).join('')}
+          </div>
+          <div class="flex gap-3 justify-end">
+            <button id="btn-proceed" class="px-4 py-2 rounded" style="background:var(--accent); color:#071232; font-weight:700;">Proceed</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      // selection
+      const selected = new Set();
+      modal.querySelectorAll('[data-seat]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const s = btn.dataset.seat;
+          if(selected.has(s)){ selected.delete(s); btn.classList.remove('bg-amber-400'); btn.classList.add('bg-slate-800/40'); }
+          else { selected.add(s); btn.classList.add('bg-amber-400'); btn.classList.remove('bg-slate-800/40'); }
+        });
+      });
+      modal.querySelector('#close-modal').addEventListener('click', ()=> modal.remove());
+      modal.querySelector('#btn-proceed').addEventListener('click', ()=>{
+        if(selected.size===0) return alert('Select at least one seat');
+        modal.remove(); openPaymentModal(service, Array.from(selected));
+      });
+    }
+
+    // Payment modal (richer) — card / upi / other, success animation, server save
+    function openPaymentModal(service, seats){
+      const root = document.createElement('div');
+      root.className='fixed inset-0 flex items-center justify-center z-50';
+      const ticketNumber = 'T' + Date.now();
+      root.innerHTML = `
+        <div class="bg-slate-900/95 p-6 rounded-2xl w-11/12 max-w-2xl">
+          <style>
+            .pay-method{display:flex;gap:.5rem;align-items:center}
+            .pay-option{cursor:pointer;padding:.45rem .9rem;border-radius:.5rem;background:rgba(255,255,255,0.02)}
+            .pay-option.active{background:linear-gradient(90deg,#3bd6d4,#2aa8ff);color:#071232;font-weight:700}
+            .tick-wrap{display:flex;align-items:center;justify-content:center;padding:2rem}
+            .circle{width:96px;height:96px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;transform:scale(0);opacity:0;transition:all 350ms ease}
+            .circle.show{transform:scale(1);opacity:1}
+            .check{stroke:#fff;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;fill:none;stroke-dasharray:100;stroke-dashoffset:100;animation:dash 600ms ease forwards 200ms}
+            @keyframes dash{ to { stroke-dashoffset:0; } }
+          </style>
+
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold">Payment — ${service.name}</h3>
+            <button id="close-pay" class="px-3 py-1 rounded bg-slate-800">Close</button>
+          </div>
+
+          <div class="text-slate-300 mb-3">Seats: ${seats.join(', ')}</div>
+          <div class="text-slate-200 text-lg font-semibold mb-2">Total: ₹${service.price * seats.length}</div>
+          <div class="text-slate-400 text-sm mb-4">Bus No: ${service.busNumber} • Service ID: ${service.id}</div>
+
+          <div class="space-y-4">
+            <div>
+              <div class="text-sm text-slate-300 mb-2">Choose payment method</div>
+              <div id="pm-options" class="pay-method">
+                <div data-method="card" class="pay-option" id="opt-card">Card</div>
+                <div data-method="upi" class="pay-option" id="opt-upi">UPI</div>
+                <div data-method="other" class="pay-option" id="opt-other">Other</div>
+              </div>
+            </div>
+
+            <div id="pm-fields" class="space-y-3">
+              <!-- dynamic fields will render here -->
+            </div>
+
+            <div class="flex gap-3 justify-end">
+              <button id="do-pay" class="px-4 py-2 rounded" style="background:var(--accent); color:#071232; font-weight:700;">Pay Now</button>
+              <button id="pay-cancel" class="px-4 py-2 rounded bg-slate-800">Cancel</button>
+            </div>
+
+            <div id="success-state" class="hidden text-center mt-4">
+              <div class="tick-wrap">
+                <div class="circle" id="success-circle">
+                  <svg width="56" height="56" viewBox="0 0 52 52" class="check-svg">
+                    <path class="check" d="M14 27 l8 8 l16 -16" />
+                  </svg>
+                </div>
+              </div>
+              <div class="text-emerald-300 font-bold mb-2">Payment successful</div>
+              <div class="text-slate-300 text-sm mb-4">Ticket: <span id="show-ticket">${ticketNumber}</span></div>
+              <div class="flex gap-3 justify-center">
+                <button id="download-ticket" class="px-4 py-2 rounded bg-emerald-500">Download Ticket</button>
+                <button id="another-book" class="px-4 py-2 rounded bg-sky-400 text-black">Make another booking</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(root);
+
+      const pmFields = root.querySelector('#pm-fields');
+      const opts = root.querySelectorAll('.pay-option');
+      let selectedMethod = null;
+
+      function renderFieldsFor(method){
+        pmFields.innerHTML = '';
+        if(method==='card'){
+          pmFields.innerHTML = `
+            <input id="card-number" placeholder="Card number (16 digits)" maxlength="19" class="w-full p-3 rounded bg-slate-800/30" />
+            <div class="flex gap-2">
+              <input id="card-exp" placeholder="MM/YY" class="w-1/2 p-3 rounded bg-slate-800/30" />
+              <input id="card-cvv" placeholder="CVV" maxlength="4" class="w-1/2 p-3 rounded bg-slate-800/30" />
+            </div>
+          `;
+        } else if(method==='upi'){
+          pmFields.innerHTML = `
+            <div class="text-sm text-slate-300 mb-2">Select UPI app</div>
+            <div id="upi-list" class="flex gap-2">
+              <button data-upi="PhonePe" class="px-3 py-2 rounded bg-slate-800/20">PhonePe</button>
+              <button data-upi="GPay" class="px-3 py-2 rounded bg-slate-800/20">GPay</button>
+              <button data-upi="Paytm" class="px-3 py-2 rounded bg-slate-800/20">Paytm</button>
+              <button data-upi="Other" class="px-3 py-2 rounded bg-slate-800/20">Other</button>
+            </div>
+            <input id="upi-id" placeholder="Enter UPI ID (e.g. name@bank / mobile@upi)" class="w-full p-3 rounded bg-slate-800/30 mt-2" />
+          `;
+        } else {
+          pmFields.innerHTML = `
+            <input id="other-ref" placeholder="Reference / Wallet ID" class="w-full p-3 rounded bg-slate-800/30" />
+          `;
+        }
+      }
+
+      // option click handlers
+      opts.forEach(o=> o.addEventListener('click', ()=>{
+        opts.forEach(x=>x.classList.remove('active'));
+        o.classList.add('active');
+        selectedMethod = o.dataset.method;
+        renderFieldsFor(selectedMethod);
+      }));
+
+      // default to Card
+      root.querySelector('#opt-card').click();
+
+      root.querySelector('#close-pay').addEventListener('click', ()=> root.remove());
+      root.querySelector('#pay-cancel').addEventListener('click', ()=> root.remove());
+
+      function showSuccessUI(){
+        const success = root.querySelector('#success-state');
+        success.classList.remove('hidden');
+        // animate circle
+        const circ = root.querySelector('#success-circle');
+        setTimeout(()=> circ.classList.add('show'), 50);
+        // hide payment controls
+        root.querySelector('#pm-options').style.display='none';
+        pmFields.style.display='none';
+        root.querySelector('#do-pay').style.display='none';
+        root.querySelector('#pay-cancel').style.display='none';
+      }
+
+      // download ticket
+      root.querySelector('#download-ticket').addEventListener('click', ()=>{
+        const bookings = JSON.parse(localStorage.getItem('bookings')||'[]');
+        const ticket = bookings.find(b=> String(b.ticketNumber)===String(ticketNumber));
+        const data = ticket ? (
+          `Ticket No: ${ticket.ticketNumber}\nBus: ${ticket.busNumber}\nService: ${ticket.serviceName}\nSeats: ${ticket.seats.join(', ')}\nDate: ${ticket.date}\nAmount: ₹${ticket.price}`
+        ) : (`Ticket: ${ticketNumber} (details not found)`);
+        const blob = new Blob([data], {type:'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `${ticketNumber}.txt`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      });
+
+      root.querySelector('#another-book').addEventListener('click', ()=>{
+        root.remove(); // simply close and let user book again
+      });
+
+      // handle Pay Now
+      root.querySelector('#do-pay').addEventListener('click', async ()=>{
+        // simple validation per method
+        if(!selectedMethod) return alert('Select a payment method');
+        if(selectedMethod==='card'){
+          const num = root.querySelector('#card-number')?.value.trim();
+          const exp = root.querySelector('#card-exp')?.value.trim();
+          const cvv = root.querySelector('#card-cvv')?.value.trim();
+          if(!num || num.replace(/\s+/g,'').length < 12) return alert('Enter a valid card number');
+          if(!exp) return alert('Enter expiry');
+          if(!cvv) return alert('Enter CVV');
+        } else if(selectedMethod==='upi'){
+          const upi = root.querySelector('#upi-id')?.value.trim();
+          if(!upi) return alert('Enter UPI ID');
+        } else {
+          const ref = root.querySelector('#other-ref')?.value.trim();
+          if(!ref) return alert('Enter reference id');
+        }
+
+        // simulate processing delay then show success animation and store booking
+        root.querySelector('#do-pay').innerText = 'Processing...';
+        setTimeout(async ()=>{
+          // store booking locally with busNumber, serviceId and ticketNumber — only after success
+          const bookings = JSON.parse(localStorage.getItem('bookings')||'[]');
+          bookings.push({id:Date.now(), ticketNumber, serviceId: service.id, serviceName:service.name, busNumber:service.busNumber, seats, date:selectedDate?selectedDate.toDateString():null, price:service.price*seats.length, paidBy:selectedMethod});
+          localStorage.setItem('bookings', JSON.stringify(bookings));
+
+          // try to save to server as well (best-effort)
+          try{
+            await fetch('/bus_reservation/save_booking.php', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ ticketNumber, serviceId: service.id, serviceName:service.name, busNumber:service.busNumber, seats, date:selectedDate?selectedDate.toDateString():null, price:service.price*seats.length, paidBy:selectedMethod })
+            });
+          }catch(e){ console.warn('Could not save to server', e); }
+
+          showSuccessUI();
+        }, 900);
+      });
+    }
+
+    // Cancel flow: prompt modal asking bus number, service id, ticket number
+    document.getElementById('cancel-book').addEventListener('click', ()=>{
+      // show a small modal
+      const mm = document.createElement('div'); mm.className='fixed inset-0 flex items-center justify-center z-50';
+      mm.innerHTML = `
+        <div class="bg-slate-900/90 p-6 rounded-2xl w-11/12 max-w-md">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold">Cancel Booking</h3>
+            <button id="close-cancel" class="px-3 py-1 rounded bg-slate-800">Close</button>
+          </div>
+          <div class="space-y-3">
+            <input id="cancel-busnum" placeholder="Bus Number (e.g. BUS1234)" class="w-full p-3 rounded bg-slate-800/30" />
+            <input id="cancel-serviceid" placeholder="Service ID (numeric)" class="w-full p-3 rounded bg-slate-800/30" />
+            <input id="cancel-ticket" placeholder="Ticket Number (e.g. T163...)" class="w-full p-3 rounded bg-slate-800/30" />
+          </div>
+          <div class="flex justify-end gap-3 mt-4">
+            <button id="do-cancel" class="px-4 py-2 rounded" style="background:var(--accent); color:#071232; font-weight:700;">Confirm Cancel</button>
+            <button id="cancel-close" class="px-4 py-2 rounded bg-slate-800">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(mm);
+      mm.querySelector('#close-cancel').addEventListener('click', ()=> mm.remove());
+      mm.querySelector('#cancel-close').addEventListener('click', ()=> mm.remove());
+      mm.querySelector('#do-cancel').addEventListener('click', async ()=>{
+        const busnum = mm.querySelector('#cancel-busnum').value.trim();
+        const sid = mm.querySelector('#cancel-serviceid').value.trim();
+        const tno = mm.querySelector('#cancel-ticket').value.trim();
+        if(!busnum || !sid || !tno) return alert('Please fill all fields');
+        try{
+          const res = await fetch('/bus_reservation/cancel_booking.php', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ busNumber: busnum, serviceId: sid, ticketNumber: tno })
+          });
+          const j = await res.json();
+          if(!j.ok) return alert(j.msg || 'Cancel failed');
+          mm.remove(); alert('Cancellation successful for Ticket: '+tno+' (Bus: '+busnum+')');
+        } catch(err){
+          console.error(err);
+          alert('Network error');
+        }
+      });
+    });
+
+    // initial small calendar highlight support
+    function closeCalDropdown(){ calDropdown.classList.remove('open'); }
+
+    // expose a quick way to view current bookings (for demo testing) — optional
+    window.__viewBookings = ()=> JSON.parse(localStorage.getItem('bookings')||'[]');
+
+  </script>
+</body>
+</html>
