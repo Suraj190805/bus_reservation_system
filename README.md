@@ -3,10 +3,11 @@ ____
 A single-page bus ticket booking application simulating a real-world reservation flow — route search, seat selection, payment processing, and cancellation — built entirely with vanilla JavaScript.
 ____
 🛠️ Tech Stack
-
+```
 Frontend: HTML5, CSS3, Vanilla JavaScript (ES6+), Tailwind CSS
 Storage: localStorage (client-side) with PHP backend fallback
 Other: Browser Blob API (ticket download), CSS keyframe animations
+```
 ____
 ✨ Features
 ```
