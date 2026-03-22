@@ -22,14 +22,19 @@ ____
 
 ____
 🚀 How to Run
-
+```
 bashgit clone https://github.com/Suraj190805/knowledge-decay-tracker.git
 cd knowledge-decay-tracker
 open index.html
 Open Live in Browser
+```
 ____
 ```
 📁 Project Structure
 ├── index.html    # Complete SPA — markup, styles, and logic in one file
 └── README.md
+```
+____
+```
+Author : Suraj S
 ```
